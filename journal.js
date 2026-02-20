@@ -1,10 +1,31 @@
+// Language names (same set as notebook/home)
+const languageNames = {
+    en: 'English',
+    es: 'Spanish',
+    fr: 'French',
+    de: 'German',
+    it: 'Italian',
+    pt: 'Portuguese',
+    zh: 'Chinese',
+    ja: 'Japanese',
+    ko: 'Korean',
+    ar: 'Arabic',
+    hi: 'Hindi'
+};
+
+const MAX_JOURNAL_TITLE_LENGTH = 50;
+
 // Journal Page Functionality
 const journalState = {
     englishText: '',
     spanishText: '',
     currentJournalId: null,
     isMicMuted: false,
-    isLatinScript: true
+    isLatinScript: true,
+    leftLanguage: 'en',
+    rightLanguage: 'es',
+    isStudyMode: false,
+    studyShowingSource: true
 };
 
 // DOM Elements
@@ -24,9 +45,28 @@ const listeningText = document.getElementById('listening-text');
 const langScriptBtn = document.getElementById('lang-script-btn');
 const langScriptAbc = document.getElementById('lang-script-abc');
 const langScriptChar = document.getElementById('lang-script-char');
+const languageLeftBtn = document.getElementById('language-left-btn');
+const languageLeftLabel = document.getElementById('language-left-label');
+const languageLeftDropdown = document.getElementById('language-left-dropdown');
+const languageRightBtn = document.getElementById('language-right-btn');
+const languageRightLabel = document.getElementById('language-right-label');
+const languageRightDropdown = document.getElementById('language-right-dropdown');
+const newJournalBtn = document.getElementById('new-journal-btn');
+const studyBtn = document.getElementById('study-btn');
+const notebookEl = document.querySelector('.notebook');
+const notebookSpread = document.getElementById('notebook-spread');
+const studyModeView = document.getElementById('study-mode-view');
+const studyCardInner = document.getElementById('study-card-inner');
+const studySourceLabel = document.getElementById('study-source-label');
+const studySourceText = document.getElementById('study-source-text');
+const studyTargetLabel = document.getElementById('study-target-label');
+const studyTargetText = document.getElementById('study-target-text');
+const flipPageBtn = document.getElementById('flip-page-btn');
+const flipPageBtnText = document.getElementById('flip-page-btn-text');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    buildLanguageDropdowns();
     initializeEventListeners();
     loadJournalEntries();
     checkForExistingJournal();
@@ -41,11 +81,28 @@ function initializeEventListeners() {
     englishTextEl.addEventListener('input', handleTextChange);
     spanishTextEl.addEventListener('input', handleTextChange);
     
+    // Journal title: max length 30, no new lines
+    journalTitleEl.addEventListener('keydown', handleJournalTitleKeydown);
+    journalTitleEl.addEventListener('input', enforceJournalTitleLength);
+    journalTitleEl.addEventListener('paste', handleJournalTitlePaste);
+    
     // Microphone toggle
     micToggleBtn.addEventListener('click', toggleMicrophone);
     
     // Language script toggle (abc / 文)
     langScriptBtn.addEventListener('click', toggleLanguageScript);
+    
+    // Language buttons
+    languageLeftBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLanguageDropdown('left');
+    });
+    languageRightBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLanguageDropdown('right');
+    });
+    
+    document.addEventListener('click', closeLanguageDropdowns);
     
     // Profile and settings buttons (placeholder)
     profileBtn.addEventListener('click', () => {
@@ -56,12 +113,95 @@ function initializeEventListeners() {
         alert('Settings coming soon!');
     });
     
-    // Journal list items
-    document.querySelectorAll('.journal-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const journalName = this.querySelector('.journal-name').textContent;
-            openJournal(journalName);
+    // New journal button
+    newJournalBtn.addEventListener('click', startNewJournal);
+    
+    // Study mode
+    studyBtn.addEventListener('click', toggleStudyMode);
+    flipPageBtn.addEventListener('click', flipStudyPage);
+    
+    // Journal list items (delegated in loadJournalEntries via createJournalListItem)
+}
+
+// Build language dropdown options
+function buildLanguageDropdowns() {
+    const options = Object.entries(languageNames)
+        .map(([code, name]) => `<button type="button" class="language-option" data-lang="${code}" role="option">${name}</button>`)
+        .join('');
+    languageLeftDropdown.innerHTML = options;
+    languageRightDropdown.innerHTML = options;
+    
+    languageLeftDropdown.querySelectorAll('.language-option').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectLanguage('left', btn.dataset.lang);
         });
+    });
+    languageRightDropdown.querySelectorAll('.language-option').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectLanguage('right', btn.dataset.lang);
+        });
+    });
+    
+    updateLanguageButtonLabels();
+    updateLanguageOptionSelected();
+}
+
+function toggleLanguageDropdown(side) {
+    const btn = side === 'left' ? languageLeftBtn : languageRightBtn;
+    const dropdown = side === 'left' ? languageLeftDropdown : languageRightDropdown;
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    
+    closeLanguageDropdowns();
+    if (!isOpen) {
+        btn.setAttribute('aria-expanded', 'true');
+        dropdown.setAttribute('aria-hidden', 'false');
+        dropdown.style.display = 'block';
+        updateLanguageOptionSelected();
+    }
+}
+
+function closeLanguageDropdowns() {
+    languageLeftBtn.setAttribute('aria-expanded', 'false');
+    languageLeftDropdown.setAttribute('aria-hidden', 'true');
+    languageLeftDropdown.style.display = 'none';
+    languageRightBtn.setAttribute('aria-expanded', 'false');
+    languageRightDropdown.setAttribute('aria-hidden', 'true');
+    languageRightDropdown.style.display = 'none';
+}
+
+function selectLanguage(side, code) {
+    // Prevent same language on both sides
+    if (side === 'left' && code === journalState.rightLanguage) return;
+    if (side === 'right' && code === journalState.leftLanguage) return;
+
+    if (side === 'left') {
+        journalState.leftLanguage = code;
+        languageLeftLabel.textContent = languageNames[code];
+    } else {
+        journalState.rightLanguage = code;
+        languageRightLabel.textContent = languageNames[code];
+    }
+    updateLanguageOptionSelected();
+    closeLanguageDropdowns();
+}
+
+function updateLanguageButtonLabels() {
+    languageLeftLabel.textContent = languageNames[journalState.leftLanguage];
+    languageRightLabel.textContent = languageNames[journalState.rightLanguage];
+}
+
+function updateLanguageOptionSelected() {
+    languageLeftDropdown.querySelectorAll('.language-option').forEach(opt => {
+        const code = opt.dataset.lang;
+        opt.classList.toggle('is-selected', code === journalState.leftLanguage);
+        opt.disabled = code === journalState.rightLanguage;
+    });
+    languageRightDropdown.querySelectorAll('.language-option').forEach(opt => {
+        const code = opt.dataset.lang;
+        opt.classList.toggle('is-selected', code === journalState.rightLanguage);
+        opt.disabled = code === journalState.leftLanguage;
     });
 }
 
@@ -125,6 +265,50 @@ function handleTextChange(e) {
     }
 }
 
+// Journal title: block Enter (no new lines)
+function handleJournalTitleKeydown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+    }
+}
+
+// Journal title: enforce max 30 characters after input
+function enforceJournalTitleLength() {
+    const el = journalTitleEl;
+    const text = el.textContent;
+    if (text.length > MAX_JOURNAL_TITLE_LENGTH) {
+        el.textContent = text.slice(0, MAX_JOURNAL_TITLE_LENGTH);
+        placeCaretAtEnd(el);
+    }
+}
+
+// Journal title: paste truncated so total length ≤ 30
+function handleJournalTitlePaste(e) {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    const plain = pasted.replace(/\r?\n/g, ' ');
+    const current = journalTitleEl.textContent;
+    const sel = window.getSelection();
+    const start = Math.min(sel.anchorOffset, sel.focusOffset);
+    const end = Math.max(sel.anchorOffset, sel.focusOffset);
+    const before = current.slice(0, start);
+    const after = current.slice(end);
+    const combined = before + plain + after;
+    const truncated = combined.slice(0, MAX_JOURNAL_TITLE_LENGTH);
+    journalTitleEl.textContent = truncated;
+    placeCaretAtEnd(journalTitleEl);
+}
+
+function placeCaretAtEnd(el) {
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
 // Save Journal
 function saveJournal() {
     const englishText = englishTextEl.textContent.trim();
@@ -147,7 +331,9 @@ function saveJournal() {
         date: new Date().toISOString(),
         englishText: englishText,
         spanishText: spanishText,
-        language: 'es'
+        language: 'es',
+        leftLanguage: journalState.leftLanguage,
+        rightLanguage: journalState.rightLanguage
     };
     
     // Remove old entry if updating
@@ -191,9 +377,11 @@ function showSaveFeedback() {
     }, 2000);
 }
 
-// Load Journal Entries
+// Load Journal Entries (sidebar shows only most recent 7)
+const SIDEBAR_JOURNAL_LIMIT = 7;
+
 function loadJournalEntries() {
-    const entries = getJournalEntries();
+    const entries = getJournalEntries().slice(0, SIDEBAR_JOURNAL_LIMIT);
     
     // Clear existing list
     journalList.innerHTML = '';
@@ -227,18 +415,91 @@ function createJournalListItem(entry) {
     return div;
 }
 
+// Study mode: toggle between normal journal and single-page study view
+function toggleStudyMode() {
+    journalState.isStudyMode = !journalState.isStudyMode;
+    if (journalState.isStudyMode) {
+        enterStudyMode();
+    } else {
+        exitStudyMode();
+    }
+}
+
+function enterStudyMode() {
+    notebookEl.classList.add('study-mode');
+    studyModeView.setAttribute('aria-hidden', 'false');
+    studyBtn.textContent = 'Exit study';
+    studyBtn.classList.add('in-study-mode');
+    journalState.studyShowingSource = true;
+    studyCardInner.classList.remove('flipped');
+    syncStudyFaces();
+    updateFlipButtonText();
+}
+
+function exitStudyMode() {
+    notebookEl.classList.remove('study-mode');
+    studyModeView.setAttribute('aria-hidden', 'true');
+    studyBtn.textContent = 'Study';
+    studyBtn.classList.remove('in-study-mode');
+}
+
+function syncStudyFaces() {
+    studySourceLabel.textContent = languageNames[journalState.leftLanguage] || 'English';
+    studyTargetLabel.textContent = languageNames[journalState.rightLanguage] || 'Spanish';
+    studySourceText.textContent = englishTextEl.textContent.trim() || 'Waiting for transcription... Type or dictate here.';
+    studyTargetText.textContent = spanishTextEl.textContent.trim() || 'Traducción pendiente... Escriba o dicte aquí.';
+}
+
+function flipStudyPage() {
+    journalState.studyShowingSource = !journalState.studyShowingSource;
+    studyCardInner.classList.toggle('flipped', !journalState.studyShowingSource);
+    updateFlipButtonText();
+}
+
+function updateFlipButtonText() {
+    flipPageBtnText.textContent = journalState.studyShowingSource ? 'Show translation' : 'Show original';
+}
+
+// Start a brand new journal (clear current, reset to blank)
+function startNewJournal() {
+    journalState.currentJournalId = null;
+    journalTitleEl.textContent = 'Journal';
+    englishTextEl.textContent = 'Waiting for transcription... Type or dictate here.';
+    spanishTextEl.textContent = 'Traducción pendiente... Escriba o dicte aquí.';
+    journalState.englishText = '';
+    journalState.spanishText = '';
+    journalTitleEl.focus();
+    window.scrollTo(0, 0);
+}
+
 // Open Journal
 function openJournal(journalId) {
     const entries = getJournalEntries();
     const entry = entries.find(e => e.id === journalId);
     
     if (entry) {
-        journalTitleEl.textContent = entry.title || 'Journal';
+        const savedTitle = (entry.title || 'Journal').slice(0, MAX_JOURNAL_TITLE_LENGTH);
+        journalTitleEl.textContent = savedTitle;
         englishTextEl.textContent = entry.englishText || 'Waiting for transcription... Type or dictate here.';
         spanishTextEl.textContent = entry.spanishText || 'Traducción pendiente... Escriba o dicte aquí.';
         journalState.currentJournalId = entry.id;
         journalState.englishText = entry.englishText || '';
         journalState.spanishText = entry.spanishText || '';
+        if (entry.leftLanguage) {
+            journalState.leftLanguage = entry.leftLanguage;
+            languageLeftLabel.textContent = languageNames[entry.leftLanguage] || 'English';
+        }
+        if (entry.rightLanguage) {
+            journalState.rightLanguage = entry.rightLanguage;
+            languageRightLabel.textContent = languageNames[entry.rightLanguage] || 'Spanish';
+        }
+        // Ensure left and right are never the same
+        if (journalState.leftLanguage === journalState.rightLanguage) {
+            const other = Object.keys(languageNames).find(code => code !== journalState.leftLanguage);
+            journalState.rightLanguage = other || 'es';
+            languageRightLabel.textContent = languageNames[journalState.rightLanguage];
+        }
+        updateLanguageOptionSelected();
         
         // Scroll to top
         window.scrollTo(0, 0);

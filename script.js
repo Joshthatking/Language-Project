@@ -14,6 +14,7 @@ const state = {
 
 // Language names mapping
 const languageNames = {
+    'en': 'English Translation',
     'es': 'Spanish Translation',
     'fr': 'French Translation',
     'de': 'German Translation',

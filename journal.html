@@ -75,13 +75,24 @@
             <div class="notebook">
                 <!-- Shared journal title (changeable, applies to both sides) -->
                 <div class="journal-title-wrap">
-                    <h2 class="journal-title" contenteditable="true" id="journal-title" data-placeholder="Journal">Journal</h2>
+                    <div class="journal-title-center">
+                        <h2 class="journal-title" contenteditable="true" id="journal-title" data-placeholder="Journal">Journal</h2>
+                    </div>
+                    <button type="button" class="study-btn" id="study-btn">Study</button>
                 </div>
-                <div class="notebook-spread">
-                    <!-- Left Page (English) -->
+                <div class="notebook-spread" id="notebook-spread">
+                    <!-- Left Page -->
                     <div class="page left-page">
                         <div class="page-content">
-                            <h3 class="page-language">English</h3>
+                            <div class="language-select-wrap">
+                                <button type="button" class="language-btn" id="language-left-btn" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="language-btn-label" id="language-left-label">English</span>
+                                    <svg class="language-btn-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                <div class="language-dropdown" id="language-left-dropdown" role="listbox" aria-hidden="true"></div>
+                            </div>
                             <div class="page-text" contenteditable="true" id="english-text">
                                 Waiting for transcription... Type or dictate here.
                             </div>
@@ -97,14 +108,42 @@
                         <div class="binding-stitch"></div>
                     </div>
 
-                    <!-- Right Page (Spanish) -->
+                    <!-- Right Page -->
                     <div class="page right-page">
                         <div class="page-content">
-                            <h3 class="page-language">Spanish</h3>
+                            <div class="language-select-wrap">
+                                <button type="button" class="language-btn" id="language-right-btn" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="language-btn-label" id="language-right-label">Spanish</span>
+                                    <svg class="language-btn-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                <div class="language-dropdown" id="language-right-dropdown" role="listbox" aria-hidden="true"></div>
+                            </div>
                             <div class="page-text" contenteditable="true" id="spanish-text">
                                 Traducción pendiente... Escriba o dicte aquí.
                             </div>
                         </div>
+                    </div>
+                </div>
+                <!-- Study mode: single centered page with flip -->
+                <div class="study-mode-view" id="study-mode-view" aria-hidden="true">
+                    <div class="study-mode-inner">
+                        <div class="study-card" id="study-card">
+                            <div class="study-card-inner" id="study-card-inner">
+                                <div class="study-face study-face-source" id="study-face-source">
+                                    <div class="study-face-label" id="study-source-label">English</div>
+                                    <div class="study-face-text" id="study-source-text"></div>
+                                </div>
+                                <div class="study-face study-face-target" id="study-face-target">
+                                    <div class="study-face-label" id="study-target-label">Spanish</div>
+                                    <div class="study-face-text" id="study-target-text"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="flip-page-btn" id="flip-page-btn">
+                            <span id="flip-page-btn-text">Show translation</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -124,7 +163,15 @@
 
         <!-- Right Sidebar - Saved Journals -->
         <aside class="sidebar">
-            <h2 class="sidebar-title">Saved Journals</h2>
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Saved Journals</h2>
+                <button type="button" class="new-journal-btn" id="new-journal-btn" aria-label="New journal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
             <div class="journal-list" id="journal-list">
                 <div class="journal-item">
                     <svg class="journal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
