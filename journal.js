@@ -25,7 +25,9 @@ const journalState = {
     leftLanguage: 'en',
     rightLanguage: 'es',
     isStudyMode: false,
-    studyShowingSource: true
+    studyShowingSource: true,
+    missedCount: 0,
+    correctCount: 0
 };
 
 // DOM Elements
@@ -53,6 +55,8 @@ const languageRightLabel = document.getElementById('language-right-label');
 const languageRightDropdown = document.getElementById('language-right-dropdown');
 const newJournalBtn = document.getElementById('new-journal-btn');
 const studyBtn = document.getElementById('study-btn');
+const transcribeBtn = document.getElementById('transcribe-btn');
+const transcribeIndicator = document.getElementById('transcribe-indicator');
 const notebookEl = document.querySelector('.notebook');
 const notebookSpread = document.getElementById('notebook-spread');
 const studyModeView = document.getElementById('study-mode-view');
@@ -63,6 +67,10 @@ const studyTargetLabel = document.getElementById('study-target-label');
 const studyTargetText = document.getElementById('study-target-text');
 const flipPageBtn = document.getElementById('flip-page-btn');
 const flipPageBtnText = document.getElementById('flip-page-btn-text');
+const missedBtn = document.getElementById('missed-btn');
+const correctBtn = document.getElementById('correct-btn');
+const missedCountEl = document.getElementById('missed-count');
+const correctCountEl = document.getElementById('correct-count');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -119,6 +127,15 @@ function initializeEventListeners() {
     // Study mode
     studyBtn.addEventListener('click', toggleStudyMode);
     flipPageBtn.addEventListener('click', flipStudyPage);
+    missedBtn.addEventListener('click', () => recordStudyScore('missed'));
+    correctBtn.addEventListener('click', () => recordStudyScore('correct'));
+
+    // Transcribe toggle
+    transcribeBtn.addEventListener('click', function () {
+        const isTranscribing = transcribeBtn.classList.toggle('transcribing');
+        transcribeBtn.textContent = isTranscribing ? 'End Transcription' : 'Transcribe';
+        transcribeIndicator.classList.toggle('active', isTranscribing);
+    });
     
     // Journal list items (delegated in loadJournalEntries via createJournalListItem)
 }
@@ -259,9 +276,9 @@ function updateMicrophoneUI() {
 // Handle text changes
 function handleTextChange(e) {
     if (e.target.id === 'english-text') {
-        journalState.englishText = e.target.textContent;
+        journalState.englishText = e.target.innerHTML;
     } else if (e.target.id === 'spanish-text') {
-        journalState.spanishText = e.target.textContent;
+        journalState.spanishText = e.target.innerHTML;
     }
 }
 
@@ -311,29 +328,31 @@ function placeCaretAtEnd(el) {
 
 // Save Journal
 function saveJournal() {
-    const englishText = englishTextEl.textContent.trim();
-    const spanishText = spanishTextEl.textContent.trim();
-    
-    if (!englishText && !spanishText) {
+    const englishPlain = englishTextEl.textContent.trim();
+    const spanishPlain = spanishTextEl.textContent.trim();
+
+    if (!englishPlain && !spanishPlain) {
         alert('Please add some content before saving.');
         return;
     }
-    
+
     // Get existing entries
     const entries = getJournalEntries();
-    
+
     const title = journalTitleEl.textContent.trim() || generateJournalTitle();
-    
+
     // Create new entry or update existing
     const entry = {
         id: journalState.currentJournalId || Date.now().toString(),
         title: title,
         date: new Date().toISOString(),
-        englishText: englishText,
-        spanishText: spanishText,
+        englishText: englishTextEl.innerHTML,
+        spanishText: spanishTextEl.innerHTML,
         language: 'es',
         leftLanguage: journalState.leftLanguage,
-        rightLanguage: journalState.rightLanguage
+        rightLanguage: journalState.rightLanguage,
+        missedCount: journalState.missedCount,
+        correctCount: journalState.correctCount
     };
     
     // Remove old entry if updating
@@ -443,11 +462,29 @@ function exitStudyMode() {
     studyBtn.classList.remove('in-study-mode');
 }
 
+function getTextWithLineBreaks(el) {
+    let result = '';
+    for (const node of el.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            result += node.textContent;
+        } else if (node.nodeName === 'BR') {
+            result += '\n';
+        } else if (node.nodeName === 'DIV' || node.nodeName === 'P') {
+            result += getTextWithLineBreaks(node) + '\n';
+        } else {
+            result += getTextWithLineBreaks(node);
+        }
+    }
+    return result;
+}
+
 function syncStudyFaces() {
     studySourceLabel.textContent = languageNames[journalState.leftLanguage] || 'English';
     studyTargetLabel.textContent = languageNames[journalState.rightLanguage] || 'Spanish';
-    studySourceText.textContent = englishTextEl.textContent.trim() || 'Waiting for transcription... Type or dictate here.';
-    studyTargetText.textContent = spanishTextEl.textContent.trim() || 'Traducción pendiente... Escriba o dicte aquí.';
+    const sourceText = getTextWithLineBreaks(englishTextEl).trim().replace(/\n{3,}/g, '\n\n');
+    const targetText = getTextWithLineBreaks(spanishTextEl).trim().replace(/\n{3,}/g, '\n\n');
+    studySourceText.textContent = sourceText || 'Waiting for transcription... Type or dictate here.';
+    studyTargetText.textContent = targetText || 'Traducción pendiente... Escriba o dicte aquí.';
 }
 
 function flipStudyPage() {
@@ -460,6 +497,31 @@ function updateFlipButtonText() {
     flipPageBtnText.textContent = journalState.studyShowingSource ? 'Show translation' : 'Show original';
 }
 
+function recordStudyScore(type) {
+    if (type === 'missed') {
+        journalState.missedCount++;
+        missedCountEl.textContent = journalState.missedCount;
+    } else {
+        journalState.correctCount++;
+        correctCountEl.textContent = journalState.correctCount;
+    }
+    // Persist immediately to the current journal entry if one exists
+    if (journalState.currentJournalId) {
+        const entries = getJournalEntries();
+        const entry = entries.find(e => e.id === journalState.currentJournalId);
+        if (entry) {
+            entry.missedCount = journalState.missedCount;
+            entry.correctCount = journalState.correctCount;
+            saveJournalEntries(entries);
+        }
+    }
+}
+
+function updateScoreDisplay() {
+    missedCountEl.textContent = journalState.missedCount;
+    correctCountEl.textContent = journalState.correctCount;
+}
+
 // Start a brand new journal (clear current, reset to blank)
 function startNewJournal() {
     journalState.currentJournalId = null;
@@ -468,6 +530,9 @@ function startNewJournal() {
     spanishTextEl.textContent = 'Traducción pendiente... Escriba o dicte aquí.';
     journalState.englishText = '';
     journalState.spanishText = '';
+    journalState.missedCount = 0;
+    journalState.correctCount = 0;
+    updateScoreDisplay();
     journalTitleEl.focus();
     window.scrollTo(0, 0);
 }
@@ -480,8 +545,8 @@ function openJournal(journalId) {
     if (entry) {
         const savedTitle = (entry.title || 'Journal').slice(0, MAX_JOURNAL_TITLE_LENGTH);
         journalTitleEl.textContent = savedTitle;
-        englishTextEl.textContent = entry.englishText || 'Waiting for transcription... Type or dictate here.';
-        spanishTextEl.textContent = entry.spanishText || 'Traducción pendiente... Escriba o dicte aquí.';
+        englishTextEl.innerHTML = entry.englishText || 'Waiting for transcription... Type or dictate here.';
+        spanishTextEl.innerHTML = entry.spanishText || 'Traducción pendiente... Escriba o dicte aquí.';
         journalState.currentJournalId = entry.id;
         journalState.englishText = entry.englishText || '';
         journalState.spanishText = entry.spanishText || '';
@@ -500,7 +565,11 @@ function openJournal(journalId) {
             languageRightLabel.textContent = languageNames[journalState.rightLanguage];
         }
         updateLanguageOptionSelected();
-        
+
+        journalState.missedCount = entry.missedCount || 0;
+        journalState.correctCount = entry.correctCount || 0;
+        updateScoreDisplay();
+
         // Scroll to top
         window.scrollTo(0, 0);
     }

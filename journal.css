@@ -229,6 +229,22 @@ body {
     text-align: center;
     flex: 1;
     margin: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.app-badge {
+    background: var(--accent-color);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    flex-shrink: 0;
 }
 
 .top-bar-right {
@@ -309,11 +325,15 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    position: relative;
 }
 
 .journal-title-center {
-    flex: 1;
+    position: absolute;
+    left: 0;
+    right: 0;
     text-align: center;
+    pointer-events: none;
 }
 
 .journal-title {
@@ -324,6 +344,7 @@ body {
     margin: 0;
     padding: 0.25rem 0;
     display: inline-block;
+    pointer-events: auto;
 }
 
 .journal-title:empty::before {
@@ -358,6 +379,77 @@ body {
 .study-btn.in-study-mode {
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.transcribe-btn-wrap {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.transcribe-btn {
+    flex-shrink: 0;
+    padding: 0.5rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: 'Merriweather', serif;
+    color: var(--accent-color);
+    background: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.02em;
+}
+
+.transcribe-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.transcribe-btn:active {
+    transform: translateY(0);
+}
+
+.transcribe-btn.transcribing {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.transcribe-indicator {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.title-wave-bar {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: white;
+    opacity: 0.35;
+    transition: height 0.25s ease, border-radius 0.25s ease, opacity 0.25s ease;
+    animation: none;
+}
+
+.transcribe-indicator.active .title-wave-bar {
+    border-radius: 2px;
+    opacity: 1;
+    animation: title-wave 1.2s ease-in-out infinite;
+}
+
+.transcribe-indicator.active .title-wave-bar:nth-child(1) { height: 8px;  animation-delay: 0s; }
+.transcribe-indicator.active .title-wave-bar:nth-child(2) { height: 14px; animation-delay: 0.2s; }
+.transcribe-indicator.active .title-wave-bar:nth-child(3) { height: 20px; animation-delay: 0.4s; }
+.transcribe-indicator.active .title-wave-bar:nth-child(4) { height: 14px; animation-delay: 0.6s; }
+.transcribe-indicator.active .title-wave-bar:nth-child(5) { height: 8px;  animation-delay: 0.8s; }
+
+@keyframes title-wave {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+    50%       { transform: scaleY(1);   opacity: 1;   }
 }
 
 .notebook-spread {
@@ -464,6 +556,14 @@ body {
     word-break: break-word;
 }
 
+.study-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+}
+
 .flip-page-btn {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
@@ -485,6 +585,55 @@ body {
 
 .flip-page-btn:active {
     transform: translateY(0);
+}
+
+.study-score-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'Merriweather', serif;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.study-score-btn:active {
+    transform: translateY(0);
+}
+
+.missed-btn {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.missed-btn:hover {
+    background: #fecaca;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.correct-btn {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.correct-btn:hover {
+    background: #bbf7d0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+
+.score-badge {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.85rem;
+    min-width: 1.5rem;
+    text-align: center;
 }
 
 /* Pages */

@@ -3,54 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Language Transcription/Translation - Home</title>
+    <title>LDT3 - Language Transcription & Translation</title>
     <link rel="stylesheet" href="home.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="home-container">
-        <!-- Title -->
-        <h1 class="main-title">Language Transcription/Translation</h1>
-        
-        <div class="home-content">
-            <!-- Left Side: Create New Journal -->
-            <div class="left-section">
-                <a href="notebook.html" class="create-journal-link">
-                    <div class="book-icon">
-                        <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Open book pages -->
-                            <path d="M20 20 L20 130 Q20 140 30 140 L90 140 Q100 140 100 130 L100 20 Q100 10 90 10 L30 10 Q20 10 20 20 Z" 
-                                  fill="#FFFEF7" stroke="#2C2416" stroke-width="2"/>
-                            <path d="M100 20 L100 130 Q100 140 110 140 L170 140 Q180 140 180 130 L180 20 Q180 10 170 10 L110 10 Q100 10 100 20 Z" 
-                                  fill="#FFFEF7" stroke="#2C2416" stroke-width="2"/>
-                            <!-- Book binding -->
-                            <rect x="95" y="10" width="10" height="130" fill="#2C2416"/>
-                            <!-- Text lines on pages -->
-                            <line x1="35" y1="35" x2="85" y2="35" stroke="#E5E7EB" stroke-width="1"/>
-                            <line x1="35" y1="50" x2="85" y2="50" stroke="#E5E7EB" stroke-width="1"/>
-                            <line x1="35" y1="65" x2="85" y2="65" stroke="#E5E7EB" stroke-width="1"/>
-                            <line x1="115" y1="35" x2="165" y2="35" stroke="#E5E7EB" stroke-width="1"/>
-                            <line x1="115" y1="50" x2="165" y2="50" stroke="#E5E7EB" stroke-width="1"/>
-                            <line x1="115" y1="65" x2="165" y2="65" stroke="#E5E7EB" stroke-width="1"/>
-                        </svg>
-                    </div>
-                    <span class="create-text">Create New Journal</span>
-                </a>
-            </div>
-            
-            <!-- Right Side: Journal Entries List -->
-            <div class="right-section">
-                <h2 class="entries-title">Your Journals</h2>
-                <div class="journal-entries" id="journal-entries">
-                    <!-- Journal entries will be dynamically added here -->
-                </div>
-                <p class="no-entries" id="no-entries">No journal entries yet. Create your first journal!</p>
-            </div>
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <h1 class="app-title">Language Transcription &amp; Translation</h1>
+            <span class="app-badge">LDT3</span>
         </div>
-    </div>
-    
+        <div class="top-bar-right">
+            <a href="journal.html" class="new-journal-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                New Journal
+            </a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="section-header">
+            <h2 class="section-title">Recent Journals</h2>
+            <span class="section-count" id="section-count"></span>
+        </div>
+
+        <div class="journal-grid" id="journal-grid"></div>
+
+        <div class="empty-state" id="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <p>No journals yet</p>
+            <a href="journal.html" class="empty-cta">Create your first journal</a>
+        </div>
+    </main>
+
     <script src="home.js"></script>
 </body>
 </html>

@@ -1,206 +1,122 @@
-// Journal Management
-const journalManager = {
-    storageKey: 'journalEntries',
-    
-    // Get all journal entries
-    getEntries() {
-        const entries = localStorage.getItem(this.storageKey);
-        return entries ? JSON.parse(entries) : [];
-    },
-    
-    // Save journal entries
-    saveEntries(entries) {
-        localStorage.setItem(this.storageKey, JSON.stringify(entries));
-    },
-    
-    // Add a new journal entry
-    addEntry(entry) {
-        const entries = this.getEntries();
-        const newEntry = {
-            id: Date.now().toString(),
-            title: entry.title || 'Untitled Journal',
-            date: new Date().toISOString(),
-            language: entry.language || 'es',
-            transcription: entry.transcription || [],
-            translation: entry.translation || [],
-            audioFileName: entry.audioFileName || null,
-            preview: this.generatePreview(entry.transcription)
-        };
-        entries.unshift(newEntry); // Add to beginning
-        this.saveEntries(entries);
-        return newEntry;
-    },
-    
-    // Get a journal entry by ID
-    getEntry(id) {
-        const entries = this.getEntries();
-        return entries.find(entry => entry.id === id);
-    },
-    
-    // Delete a journal entry
-    deleteEntry(id) {
-        const entries = this.getEntries();
-        const filtered = entries.filter(entry => entry.id !== id);
-        this.saveEntries(filtered);
-    },
-    
-    // Generate preview text from transcription
-    generatePreview(transcription) {
-        if (!transcription || transcription.length === 0) {
-            return 'No content yet.';
-        }
-        const firstSegment = transcription[0];
-        const text = firstSegment.text || '';
-        return text.length > 100 ? text.substring(0, 100) + '...' : text;
-    },
-    
-    // Format date for display
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = Math.abs(now - date);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-            return 'Today';
-        } else if (diffDays === 1) {
-            return 'Yesterday';
-        } else if (diffDays < 7) {
-            return `${diffDays} days ago`;
-        } else {
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        }
-    }
-};
-
-// Language names mapping
 const languageNames = {
-    'es': 'Spanish',
-    'fr': 'French',
-    'de': 'German',
-    'it': 'Italian',
-    'pt': 'Portuguese',
-    'zh': 'Chinese',
-    'ja': 'Japanese',
-    'ko': 'Korean',
-    'ar': 'Arabic',
-    'hi': 'Hindi'
+    en: 'English', es: 'Spanish', fr: 'French', de: 'German',
+    it: 'Italian', pt: 'Portuguese', zh: 'Chinese', ja: 'Japanese',
+    ko: 'Korean', ar: 'Arabic', hi: 'Hindi'
 };
 
-// DOM Elements
-const journalEntriesContainer = document.getElementById('journal-entries');
-const noEntriesMessage = document.getElementById('no-entries');
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    renderJournalEntries();
-    
-    // Check if we're coming from notebook with a new entry
-    checkForNewEntry();
-});
+const journalGrid  = document.getElementById('journal-grid');
+const emptyState   = document.getElementById('empty-state');
+const sectionCount = document.getElementById('section-count');
 
-// Render all journal entries
-function renderJournalEntries() {
-    const entries = journalManager.getEntries();
-    
-    if (entries.length === 0) {
-        noEntriesMessage.classList.add('show');
-        journalEntriesContainer.innerHTML = '';
-        return;
+document.addEventListener('DOMContentLoaded', renderGrid);
+
+function getEntries() {
+    try {
+        return JSON.parse(localStorage.getItem('journalEntries')) || [];
+    } catch {
+        return [];
     }
-    
-    noEntriesMessage.classList.remove('show');
-    journalEntriesContainer.innerHTML = '';
-    
-    entries.forEach(entry => {
-        const entryElement = createJournalEntryElement(entry);
-        journalEntriesContainer.appendChild(entryElement);
-    });
 }
 
-// Create a journal entry element
-function createJournalEntryElement(entry) {
+function saveEntries(entries) {
+    localStorage.setItem('journalEntries', JSON.stringify(entries));
+}
+
+function stripHtml(html) {
     const div = document.createElement('div');
-    div.className = 'journal-entry';
-    div.dataset.entryId = entry.id;
-    
-    const language = languageNames[entry.language] || entry.language;
-    const segmentCount = entry.transcription ? entry.transcription.length : 0;
-    
-    div.innerHTML = `
-        <div class="journal-entry-header">
-            <div class="journal-entry-title">${escapeHtml(entry.title)}</div>
-            <div class="journal-entry-date">${journalManager.formatDate(entry.date)}</div>
-        </div>
-        <div class="journal-entry-meta">
-            <span>📝 ${segmentCount} segments</span>
-            <span>🌐 ${language}</span>
-            ${entry.audioFileName ? `<span>🎵 ${escapeHtml(entry.audioFileName)}</span>` : ''}
-        </div>
-        <div class="journal-entry-preview">${escapeHtml(entry.preview || 'No preview available.')}</div>
-        <div class="journal-entry-actions">
-            <button class="delete-btn" onclick="deleteJournalEntry(event, '${entry.id}')" title="Delete">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-            </button>
-        </div>
-    `;
-    
-    // Add click handler to open journal
-    div.addEventListener('click', (e) => {
-        // Don't open if clicking delete button
-        if (e.target.closest('.delete-btn')) {
-            return;
-        }
-        openJournal(entry.id);
-    });
-    
-    return div;
+    div.innerHTML = html;
+    return div.textContent || '';
 }
 
-// Open a journal entry
-function openJournal(entryId) {
-    // Store the entry ID in sessionStorage so notebook.html can load it
-    sessionStorage.setItem('openJournalId', entryId);
-    window.location.href = 'notebook.html';
-}
-
-// Delete a journal entry
-function deleteJournalEntry(event, entryId) {
-    event.stopPropagation();
-    
-    if (confirm('Are you sure you want to delete this journal entry?')) {
-        journalManager.deleteEntry(entryId);
-        renderJournalEntries();
-    }
-}
-
-// Check if we need to save a new entry from notebook
-function checkForNewEntry() {
-    const newEntryData = sessionStorage.getItem('newJournalEntry');
-    if (newEntryData) {
-        try {
-            const entry = JSON.parse(newEntryData);
-            journalManager.addEntry(entry);
-            sessionStorage.removeItem('newJournalEntry');
-            renderJournalEntries();
-        } catch (e) {
-            console.error('Error parsing new journal entry:', e);
-        }
-    }
-}
-
-// Utility function to escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Make deleteJournalEntry available globally
-window.deleteJournalEntry = deleteJournalEntry;
+function renderGrid() {
+    const entries = getEntries();
+    journalGrid.innerHTML = '';
+
+    if (entries.length === 0) {
+        emptyState.style.display = 'flex';
+        sectionCount.textContent = '';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+    sectionCount.textContent = `${entries.length} ${entries.length === 1 ? 'journal' : 'journals'}`;
+
+    entries.forEach(entry => journalGrid.appendChild(buildCard(entry)));
+}
+
+function buildCard(entry) {
+    const date  = new Date(entry.date || Date.now());
+    const day   = date.getDate();
+    const month = MONTHS[date.getMonth()];
+    const year  = date.getFullYear();
+
+    const leftLang  = languageNames[entry.leftLanguage]  || entry.leftLanguage  || 'English';
+    const rightLang = languageNames[entry.rightLanguage] || entry.rightLanguage || 'Spanish';
+
+    const rawPreview = stripHtml(entry.englishText || '').trim();
+    const preview    = rawPreview.length > 140 ? rawPreview.slice(0, 140) + '…' : rawPreview;
+
+    const missed  = entry.missedCount  || 0;
+    const correct = entry.correctCount || 0;
+    const hasScores = missed > 0 || correct > 0;
+
+    const card = document.createElement('div');
+    card.className = 'journal-card';
+
+    card.innerHTML = `
+        <button class="card-delete-btn" aria-label="Delete journal" data-id="${escapeHtml(entry.id)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <div class="card-date-header">
+            <span class="card-day">${day}</span>
+            <div class="card-month-year">
+                <span class="card-month">${month}</span>
+                <span class="card-year">${year}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-title">${escapeHtml(entry.title || 'Untitled Journal')}</div>
+            <div class="card-languages">
+                ${escapeHtml(leftLang)}
+                <em class="card-lang-arrow">→</em>
+                ${escapeHtml(rightLang)}
+            </div>
+            ${preview ? `<div class="card-preview">${escapeHtml(preview)}</div>` : ''}
+            ${hasScores ? `
+            <div class="card-scores">
+                <span class="score-pill correct">✓ ${correct}</span>
+                <span class="score-pill missed">✗ ${missed}</span>
+            </div>` : ''}
+        </div>
+    `;
+
+    // Open journal on click (but not delete button)
+    card.addEventListener('click', e => {
+        if (e.target.closest('.card-delete-btn')) return;
+        sessionStorage.setItem('openJournalId', entry.id);
+        window.location.href = 'journal.html';
+    });
+
+    // Delete
+    card.querySelector('.card-delete-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        if (confirm(`Delete "${entry.title || 'Untitled Journal'}"?`)) {
+            const updated = getEntries().filter(en => en.id !== entry.id);
+            saveEntries(updated);
+            renderGrid();
+        }
+    });
+
+    return card;
+}

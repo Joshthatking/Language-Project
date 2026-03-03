@@ -21,7 +21,7 @@
                 <span>Home</span>
             </a>
         </div>
-        <h1 class="app-title">Language Transcription & Translation</h1>
+        <h1 class="app-title">Language Transcription &amp; Translation <span class="app-badge">LDT3</span></h1>
         <div class="top-bar-right">
             <button class="icon-btn" id="profile-btn" aria-label="Profile">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -75,6 +75,16 @@
             <div class="notebook">
                 <!-- Shared journal title (changeable, applies to both sides) -->
                 <div class="journal-title-wrap">
+                    <div class="transcribe-btn-wrap">
+                        <button type="button" class="transcribe-btn" id="transcribe-btn">Transcribe</button>
+                        <div class="transcribe-indicator" id="transcribe-indicator" aria-label="Transcription status">
+                            <div class="title-wave-bar"></div>
+                            <div class="title-wave-bar"></div>
+                            <div class="title-wave-bar"></div>
+                            <div class="title-wave-bar"></div>
+                            <div class="title-wave-bar"></div>
+                        </div>
+                    </div>
                     <div class="journal-title-center">
                         <h2 class="journal-title" contenteditable="true" id="journal-title" data-placeholder="Journal">Journal</h2>
                     </div>
@@ -141,9 +151,17 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="flip-page-btn" id="flip-page-btn">
-                            <span id="flip-page-btn-text">Show translation</span>
-                        </button>
+                        <div class="study-controls">
+                            <button type="button" class="study-score-btn missed-btn" id="missed-btn">
+                                Missed <span class="score-badge" id="missed-count">0</span>
+                            </button>
+                            <button type="button" class="flip-page-btn" id="flip-page-btn">
+                                <span id="flip-page-btn-text">Show translation</span>
+                            </button>
+                            <button type="button" class="study-score-btn correct-btn" id="correct-btn">
+                                Correct <span class="score-badge" id="correct-count">0</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
