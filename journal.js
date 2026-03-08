@@ -88,6 +88,16 @@ function initializeEventListeners() {
     // Text editing
     englishTextEl.addEventListener('input', handleTextChange);
     spanishTextEl.addEventListener('input', handleTextChange);
+
+    // Normalize bare text nodes → divs on blur, then re-highlight
+    englishTextEl.addEventListener('blur', () => {
+        normalizeTextNodes(englishTextEl);
+        highlightParagraphs(englishTextEl);
+    });
+    spanishTextEl.addEventListener('blur', () => {
+        normalizeTextNodes(spanishTextEl);
+        highlightParagraphs(spanishTextEl);
+    });
     
     // Journal title: max length 30, no new lines
     journalTitleEl.addEventListener('keydown', handleJournalTitleKeydown);
@@ -273,12 +283,58 @@ function updateMicrophoneUI() {
     }
 }
 
+// Paragraph highlight boxes
+const paraTimers = new WeakMap();
+
+// Wrap any bare text-node children in divs so the highlighter can target them.
+// Called on blur only — cursor is gone so DOM changes are safe.
+function normalizeTextNodes(el) {
+    Array.from(el.childNodes).forEach(node => {
+        if (node.nodeType !== Node.TEXT_NODE) return;
+        const text = node.textContent;
+        if (!text.trim()) { el.removeChild(node); return; }
+        const div = document.createElement('div');
+        div.textContent = text;
+        el.replaceChild(div, node);
+    });
+}
+
+function highlightParagraphs(el) {
+    const divs = Array.from(el.querySelectorAll(':scope > div'));
+    divs.forEach(d => d.classList.remove('para-start', 'para-middle', 'para-end', 'para-solo'));
+
+    const isBlank = d => !d.textContent.trim();
+    let group = [];
+
+    function flush() {
+        if (!group.length) return;
+        if (group.length === 1) {
+            group[0].classList.add('para-solo');
+        } else {
+            group[0].classList.add('para-start');
+            group[group.length - 1].classList.add('para-end');
+            group.slice(1, -1).forEach(d => d.classList.add('para-middle'));
+        }
+        group = [];
+    }
+
+    divs.forEach(d => isBlank(d) ? flush() : group.push(d));
+    flush();
+}
+
+function scheduleHighlight(el) {
+    clearTimeout(paraTimers.get(el));
+    paraTimers.set(el, setTimeout(() => highlightParagraphs(el), 250));
+}
+
 // Handle text changes
 function handleTextChange(e) {
     if (e.target.id === 'english-text') {
         journalState.englishText = e.target.innerHTML;
+        scheduleHighlight(e.target);
     } else if (e.target.id === 'spanish-text') {
         journalState.spanishText = e.target.innerHTML;
+        scheduleHighlight(e.target);
     }
 }
 
@@ -533,6 +589,8 @@ function startNewJournal() {
     journalState.missedCount = 0;
     journalState.correctCount = 0;
     updateScoreDisplay();
+    highlightParagraphs(englishTextEl);
+    highlightParagraphs(spanishTextEl);
     journalTitleEl.focus();
     window.scrollTo(0, 0);
 }
@@ -547,6 +605,8 @@ function openJournal(journalId) {
         journalTitleEl.textContent = savedTitle;
         englishTextEl.innerHTML = entry.englishText || 'Waiting for transcription... Type or dictate here.';
         spanishTextEl.innerHTML = entry.spanishText || 'Traducción pendiente... Escriba o dicte aquí.';
+        highlightParagraphs(englishTextEl);
+        highlightParagraphs(spanishTextEl);
         journalState.currentJournalId = entry.id;
         journalState.englishText = entry.englishText || '';
         journalState.spanishText = entry.spanishText || '';
